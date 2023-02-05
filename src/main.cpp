@@ -36,8 +36,60 @@ void loop()
         cnt++;
         Serial.println(cnt);
     }
-    ledcWrite(0, ((cnt & 4) == 4) ? duty:0);
-    ledcWrite(1, ((cnt & 2) == 2) ? duty:0);
-    ledcWrite(2, ((cnt & 1) == 1) ? duty:0);
+    if(count>=8){
+        ledcWrite(0,0);
+        ledcWrite(1,0);
+        ledcWrite(2,0);
+        delay(10);
+        count=0;
+    }
+    if(count==1)
+    {
+        ledcWrite(0,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(1,0);
+        ledcWrite(2,0);
+        delay(10);
+    }
+    if(count==2)
+    {
+        ledcWrite(0,0);
+        ledcWrite(1,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(2,0);
+        delay(10);
+    }
+    if(count==3)
+    {
+        ledcWrite(0,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(1,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(2,0); 
+        delay(10);   
+    }
+    if(count==4)
+    {   
+        ledcWrite(0,0);
+        ledcWrite(1,0);
+        ledcWrite(2,map(analogRead(LDR),900,2914,0,255));
+        delay(10);   
+    }
+    if(count==5)
+    {   
+        ledcWrite(0,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(1,0);
+        ledcWrite(2,map(analogRead(LDR),900,2914,0,255));     
+    }
+    if(count==6)
+    {
+        digitalWrite(GREEN,1);
+        ledcWrite(0,0);
+        ledcWrite(1,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(2,map(analogRead(LDR),900,2914,0,255));   
+        delay(10); 
+    }
+    if(count==7){
+        ledcWrite(0,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(1,map(analogRead(LDR),900,2914,0,255));
+        ledcWrite(2,map(analogRead(LDR),900,2914,0,255)); 
+        delay(10); 
+    }
     
 }
