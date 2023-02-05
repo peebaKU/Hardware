@@ -2,6 +2,7 @@
 
 | NAME | CONTRACT |
 | --- | --- |
-| BARAMEE PANYAFUAEN || [@peebaKU](https:/github.com/peebaKU/) |
+| BARAMEE  |[@peebaKU](https:/github.com/peebaKU/) |
+| MAHASACHAN |[@mahasachan](https://github.com/mahasachan)|
 
 
