@@ -3,7 +3,7 @@
 #define BUTTON 27
 #define GREEN 33
 #define RED 25
-#define YE 26
+#define YELLOW 26
 #define LDR 32
 int cnt = 0;    
 Bounce debouncer = Bounce();
@@ -17,7 +17,7 @@ void setup() {
     ledcSetup(2, 5000, 8);
     ledcAttachPin(GREEN, 0);
     ledcAttachPin(RED, 1);
-    ledcAttachPin(YE, 2);
+    ledcAttachPin(YELLOW, 2);
 }
 int count;
 void loop() {
