@@ -79,7 +79,8 @@ void loop() {
         ledcWrite(0,map(analogRead(LDR),900,2914,0,255));
         ledcWrite(1,map(analogRead(LDR),900,2914,0,255));
         ledcWrite(2,map(analogRead(LDR),900,2914,0,255)); 
-        delay(10); 
+        delay(10);
+         
     }
     
 
