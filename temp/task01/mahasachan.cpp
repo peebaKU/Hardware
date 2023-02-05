@@ -11,20 +11,18 @@ Bounce debouncer = Bounce();
 
 void setup()
 {
-
-    ledcSetup(0, 5000, 8);
-    ledcSetup(1, 5000, 8);
-    ledcSetup(2, 5000, 8);
-
-    ledcAttachPin(RED, 0);
-    ledcAttachPin(GREEN,2);
-    ledcAttachPin(YELLOW, 1);
-
     Serial.begin(115200);
     Serial.println("BUTTON");
     
     debouncer.attach(BUTTON,INPUT_PULLUP);
     debouncer.interval(25); 
+
+    ledcSetup(0, 5000, 8);
+    ledcSetup(1, 5000, 8);
+    ledcSetup(2, 5000, 8);
+    ledcAttachPin(RED, 0);
+    ledcAttachPin(GREEN,2);
+    ledcAttachPin(YELLOW, 1);
 }
 
 void loop()
@@ -36,8 +34,7 @@ void loop()
         cnt++;
         Serial.println(cnt);
     }
-    ledcWrite(0, ((cnt & 4) == 4) ? duty:0);
-    ledcWrite(1, ((cnt & 2) == 2) ? duty:0);
     ledcWrite(2, ((cnt & 1) == 1) ? duty:0);
-    
+    ledcWrite(1, ((cnt & 2) == 2) ? duty:0);
+    ledcWrite(0, ((cnt & 4) == 4) ? duty:0);
 }
