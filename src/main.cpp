@@ -29,7 +29,9 @@ void loop() {
       cnt++;
       Serial.println(cnt);
   }
+  
   ledcWrite(0, ((cnt & 4) == 4) ? x : 0);
   ledcWrite(1, ((cnt & 2) == 2) ? x : 0);
   ledcWrite(2, ((cnt & 1) == 1) ? x : 0);
+
 }
