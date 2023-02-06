@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-    const char *ssid = "<Wifi name>";
-    const char *password = "<Wifi password>";
+    const char *ssid = "Baramee";
+    const char *password = "b123456789";
 
     void Connect_Wifi() {
         WiFi.begin(ssid, password);
