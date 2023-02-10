@@ -1,326 +1,173 @@
 #include <Arduino.h>
 #include <Bounce2.h>
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
-
-// #include "baramee.h"
-#define GREEN 33
-#define RED 26
-#define YELLOW 25
-#define LDR 34
+#include <ESP32Servo.h>
+#define BUTTON1 27 // for trun on servo and bozer
+#define BUTTON2 26
+Servo myservo;
 TaskHandle_t TaskA = NULL;
 TaskHandle_t TaskB = NULL;
-int status_room1 = 0;   // standard
-int status_room2 = 0;   // standard
-int status_room3 = 0;   // standard
-int value_light1 = 255; // standard
-int value_light2 = 255; // standard
-int value_light3 = 255; // standard
-int auto_light1 = 1;    // standard
-int auto_light2 = 0;    // standard
-int auto_light3 = 0;    // standard
-int sensor_LDR;
-#define BUTTON 27
-Bounce debouncer = Bounce();
-int SW_status = 0;
-int i = 255;
-int touch;
+Bounce button1 = Bounce();
+Bounce button2 = Bounce();
 int count = 0;
-int threshold = 40;
-bool touch1detected = false;
-bool touch2detected = false;
-int cnt = 0;
+int buzzer = 12;
+int status_button1 = 0;
+int status_button2 = 0;
+int sprinkle_1_pin = 33;
+int sprinkle_2_pin = 25;
+int analog_Pin = 15;
+int val_soil_moisture = 0;
+int ststus_servo = 1;
+void auto_watering_system();
+void insect_repellent();
+void soil_moisture_detection();
+void sunroof_control();
+void manual_watering_system(void *pam);
 
-const String baseUrl = "http://group8.exceed19.online/";
+// moisture
+int moist_sensor = 0;
 
-void Connect_Wifi()
-{
-  const char *ssid = "M";
-  const char *password = "leesoome123";
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.print("OK! IP=");
-  Serial.println(WiFi.localIP());
-  Serial.println("----------------------------------");
-}
+// sprinkle
+boolean auto_sprinkle_1 = false;
+boolean is_activate_sprinkle_1 = false;
+boolean auto_sprinkle_2 = false;
+boolean is_activate_sprinkle_2 = false;
 
-void GET_room()
-{
-  DynamicJsonDocument doc(2048);
-  const String url = "https://ecourse.cpe.ku.ac.th/exceed08/rooms";
-  HTTPClient http;
-  http.begin(url);
-  int httpResponseCode = http.GET();
-  Serial.print("GET");
-  if (httpResponseCode >= 200 && httpResponseCode < 300)
-  {
-    Serial.print("HTTP ");
-    Serial.println(httpResponseCode);
-    String payload = http.getString();
-    deserializeJson(doc, payload);
-    status_room1 = doc["room1"]["state"].as<int>();
-    status_room2 = doc["room2"]["state"].as<int>();
-    status_room3 = doc["room3"]["state"].as<int>();
-    value_light1 = doc["room1"]["brigthness"].as<int>();
-    value_light2 = doc["room2"]["brigthness"].as<int>();
-    value_light3 = doc["room3"]["brigthness"].as<int>();
-    auto_light1 = doc["room1"]["is_auto"].as<int>();
-    auto_light2 = doc["room2"]["is_auto"].as<int>();
-    auto_light3 = doc["room3"]["is_auto"].as<int>();
-  }
-  else
-  {
-    Serial.print("Error ");
-    Serial.println(httpResponseCode);
-  }
+// buzzer & sunroof
+boolean buzzer_is_activate = false;
+boolean sunroof_is_open = true;
+boolean user_ignore = true;
 
-  Serial.println("----------------------------------");
-}
-
-void POST_update_room()
-{
-  String json;
-  DynamicJsonDocument doc(2048);
-  doc["room1"]["state"] = status_room1;
-  doc["room2"]["state"] = status_room2;
-  doc["room3"]["state"] = status_room3;
-  doc["room1"]["brightness"] = value_light1;
-  doc["room2"]["brightness"] = value_light2;
-  doc["room3"]["brightness"] = value_light3;
-  doc["room1"]["is_auto"] = auto_light1;
-  doc["room2"]["is_auto"] = auto_light2;
-  doc["room3"]["is_auto"] = auto_light3;
-
-  serializeJson(doc, json);
-
-  const String url = "http://group8.exceed19.online/update_rooms";
-  HTTPClient http;
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  int httpResponseCode = http.POST(json);
-  if (httpResponseCode >= 200 && httpResponseCode < 300)
-  {
-    Serial.print("DONE");
-    Serial.println();
-  }
-  else
-  {
-    Serial.print("Error ");
-    Serial.println(httpResponseCode);
-  }
-
-  Serial.println("----------------------------------");
-}
-
-void gotTouch()
-{
-  touch1detected = true;
-}
-
-void gotTouch1()
-{
-  touch2detected = true;
-}
-
-int poyT1 = 0, countT1 = 0;
-int poyT2 = 0, countT2 = 0;
-
-void Touch1()
-{
-  debouncer.update();
-  if (debouncer.fell())
-  {
-    status_room1 = !status_room1;
-  }
-}
-
-void Touch2()
-{
-  if (touchRead(T2) <= 20 && poyT1 != 1)
-  {
-    if (countT1 == 0)
-    {
-      Serial.println(touchRead(T2));
-      status_room2 = 255;
-      countT1++;
-      poyT1 = !poyT1;
-    }
-  }
-  if (touchRead(T2) > 20)
-  {
-    countT1 = 0;
-  }
-  if (touchRead(T2) <= 20 && poyT1 == 1)
-  {
-    if (countT1 == 0)
-    {
-      Serial.println(touchRead(T2));
-      status_room2 = 0;
-      countT1++;
-      poyT1 = !poyT1;
-    }
-  }
-}
-
-void Touch3()
-{
-  if (touchRead(T3) <= 20 && poyT2 != 1)
-  {
-    if (countT2 == 0)
-    {
-      status_room3 = 255;
-      countT2++;
-      poyT2 = !poyT2;
-    }
-  }
-  if (touchRead(T3) > 20)
-  {
-    countT2 = 0;
-  }
-  if (touchRead(T3) <= 20 && poyT2 == 1)
-  {
-    if (countT2 == 0)
-    {
-      status_room3 = 0;
-      countT2++;
-      poyT2 = !poyT2;
-    }
-  }
-}
-
-void Senlight(void *param)
+void All_Switch(void *param)
 {
   while (1)
   {
-    if (!auto_light1)
+    button1.update();
+    if (button1.fell())
     {
-      Touch1();
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+      status_button1 = !status_button1;
+      Serial.println(status_button1);
     }
-    if (!auto_light2)
+    vTaskDelay(2 / portTICK_PERIOD_MS);
+    button2.update();
+    if (button2.fell())
     {
-      Touch2();
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+      status_button2 = !status_button2;
+      Serial.println(status_button2);
     }
-    if (!auto_light3)
-    {
-      Touch3();
-      vTaskDelay(1 / portTICK_PERIOD_MS);
-    }
-    sensor_LDR = map(analogRead(LDR), 1250, 4096, 0, 255);
+    vTaskDelay(2 / portTICK_PERIOD_MS);
+  }
+}
+
+void update_soil_moisture_detection(void *param)
+{
+  while (1)
+  { // GET
     vTaskDelay(1 / portTICK_PERIOD_MS);
-  }
-}
-
-void GET_POST(void *param)
-{
-  while (1)
-  {
-    GET_room();
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-    POST_update_room();
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    soil_moisture_detection();
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+    // POST
+    vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }
 
 void setup()
 {
   Serial.begin(115200);
-  Connect_Wifi();
-  ledcSetup(0, 5000, 8);
-  ledcSetup(1, 5000, 8);
-  ledcSetup(2, 5000, 8);
-  ledcAttachPin(GREEN, 0);
-  ledcAttachPin(YELLOW, 1);
-  ledcAttachPin(RED, 2);
-  touchAttachInterrupt(T2, gotTouch, threshold);
-  touchAttachInterrupt(T3, gotTouch1, threshold);
-  debouncer.attach(BUTTON, INPUT_PULLUP);
-  debouncer.interval(27);
-  sensor_LDR = map(analogRead(LDR), 0, 4095, 0, 255);
-  Serial.println(analogRead(LDR));
-  xTaskCreatePinnedToCore(Senlight, "Senlight", 1000, NULL, 1, &TaskA, 0);
-  xTaskCreatePinnedToCore(GET_POST, "GET_POST", 10240, NULL, 1, &TaskB, 1);
+  button1.interval(25);
+  button2.interval(25);
+  pinMode(buzzer, OUTPUT);
+  pinMode(sprinkle_1_pin, OUTPUT);
+  pinMode(sprinkle_2_pin, OUTPUT);
+  button1.attach(BUTTON1, INPUT_PULLUP);
+  button2.attach(BUTTON2, INPUT_PULLUP);
+  myservo.attach(19);
+  xTaskCreatePinnedToCore(All_Switch, "All_Switch", 1000, NULL, 1, &TaskA, 0);
+  xTaskCreatePinnedToCore(update_soil_moisture_detection, "update_soil_moisture_detection", 1000, NULL, 1, &TaskB, 1);
+}
+
+void auto_watering_system()
+{
+  if (status_button2 == 0 && val_soil_moisture < 80)
+  {
+    user_ignore = 1;
+  }
+  else if (val_soil_moisture > 50)
+  {
+    digitalWrite(sprinkle_1_pin, HIGH);
+    digitalWrite(sprinkle_2_pin, HIGH);
+  }
+  else
+  {
+    digitalWrite(sprinkle_1_pin, LOW);
+    digitalWrite(sprinkle_2_pin, LOW);
+  }
+  delay(1);
+}
+
+void manual_waterong_system() // ปิดเปิดเอง
+{
+  if (val_soil_moisture >= 80) // ความชื้นน้อยมากๆ
+  {
+    user_ignore = 0;
+  }
+  else if (status_button2)
+  {
+    digitalWrite(sprinkle_1_pin, HIGH);
+    digitalWrite(sprinkle_2_pin, HIGH);
+  }
+  else
+  {
+    digitalWrite(sprinkle_1_pin, LOW);
+    digitalWrite(sprinkle_2_pin, LOW);
+  }
+  delay(1);
+}
+
+void insect_repellent() // ไล่แมลง
+{
+  digitalWrite(buzzer, HIGH);
+  delay(1);
+  digitalWrite(buzzer, LOW);
+  delay(1);
+}
+
+void soil_moisture_detection() // วัดค่าความชื้น
+{
+  val_soil_moisture = map(analogRead(analog_Pin), 1200, 4096, 0, 100);
+  Serial.print("val_soil_moisture = ");
+  Serial.println(val_soil_moisture);
 }
 
 void loop()
 {
-  if (!auto_light1)
+  if (status_button1) // ปิดฝา
   {
-    if (status_room1)
+    if (count == 0)
     {
-      ledcWrite(0, value_light1); // on room1
+      digitalWrite(sprinkle_1_pin, LOW);
+      digitalWrite(sprinkle_2_pin, LOW);//ปิดน้ำก่อน
+      myservo.write(90);
+      delay(100);
     }
     else
     {
-      ledcWrite(0, 0); // off room1
+      insect_repellent();
+      delay(1);
     }
-    delay(5);
+    count++;
   }
-  else if (auto_light1) // mode auto room1
+  else // เปิดฝา
   {
-    if (sensor_LDR <= 50)
+    count = 0;
+    myservo.write(0);
+    delay(100);
+    if (user_ignore)
     {
-      ledcWrite(0, value_light1); // on room1
+      manual_waterong_system();
     }
     else
     {
-      ledcWrite(0, 0); // off room1
+      auto_watering_system();
     }
-    delay(5);
-  }
-
-  if (!auto_light2)
-  {
-    if (status_room2)
-    {
-      ledcWrite(1, value_light2); // on room2
-    }
-    else
-    {
-      ledcWrite(1, 0); // off room2
-    }
-    delay(5);
-  }
-  else if (auto_light2) // mode auto room2
-  {
-    if (sensor_LDR <= 50)
-    {
-      ledcWrite(1, value_light2); // on room2
-    }
-    else
-    {
-      ledcWrite(1, 0); // off room2
-    }
-    delay(5);
-  }
-  if (!auto_light3)
-  {
-    if (status_room3)
-    {
-      ledcWrite(2, value_light3); // on room3
-    }
-    else
-    {
-      ledcWrite(2, 0); // off room3
-    }
-    delay(5);
-  }
-  else if (auto_light3) // mode auto room3
-  {
-    if (sensor_LDR <= 50)
-    {
-      ledcWrite(2, value_light3); // on room3
-    }
-    else
-    {
-      ledcWrite(2, 0); // off room3
-    }
-    delay(5);
   }
 }
